@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resume Builder</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="date"], input[type="file"], button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        input[type="file"] {
+            padding: 3px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .skill-suggestions {
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 5px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .skill-suggestions div {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .skill-suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+        .added-skills {
+            margin-top: 10px;
+        }
+        .added-skill {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-group img {
+            max-width: 100px;
+            display: block;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Resume Builder</h1>
+    <form id="resumeForm">
+        <label for="firstName">First Name:</label>
+        <input type="text" id="firstName" name="firstName" required>
+
+        <label for="lastName">Last Name:</label>
+        <input type="text" id="lastName" name="lastName" required>
+
+        <label for="phone">Phone:</label>
+        <input type="text" id="phone" name="phone" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address" required>
+
+        <div class="form-group">
+            <label for="photo">Photo:</label>
+            <input type="file" id="photo" name="photo" accept="image/*" required>
+            <img id="thumbnail" src="" alt="Photo Thumbnail">
+        </div>
+
+        <label for="birthDate">Birth Date:</label>
+        <input type="date" id="birthDate" name="birthDate" required>
+
+        <h2>Education</h2>
+        <div id="educationContainer"></div>
+        <button type="button" onclick="addEducation()">+ Add Education</button>
+
+        <h2>Experience</h2>
+        <div id="experienceContainer"></div>
+        <button type="button" onclick="addExperience()">+ Add Experience</button>
+
+        <h2>Skills</h2>
+        <input type="text" id="skillInput" placeholder="Enter a skill" oninput="searchSkills()">
+        <div id="skillSuggestions" class="skill-suggestions"></div>
+        <div id="addedSkills" class="added-skills"></div>
+
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script>
+    let educationCount = 0;
+    let experienceCount = 0;
+    let addedSkills = [];
+
+    document.getElementById('photo').addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('thumbnail').src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function addEducation() {
+        educationCount++;
+        const container = document.getElementById('educationContainer');
+        const educationDiv = document.createElement('div');
+        educationDiv.innerHTML = `
+            <label for="institution${educationCount}">Institution:</label>
+            <input type="text" id="institution${educationCount}" name="institution${educationCount}" required>
+            <label for="fromDate${educationCount}">Start Date:</label>
+            <input type="date" id="fromDate${educationCount}" name="fromDate${educationCount}" required>
+            <label for="toDate${educationCount}">End Date:</label>
+            <input type="date" id="toDate${educationCount}" name="toDate${educationCount}">
+        `;
+        container.appendChild(educationDiv);
+    }
+
+    function addExperience() {
+        experienceCount++;
+        const container = document.getElementById('experienceContainer');
+        const experienceDiv = document.createElement('div');
+        experienceDiv.innerHTML = `
+            <label for="company${experienceCount}">Company:</label>
+            <input type="text" id="company${experienceCount}" name="company${experienceCount}" required>
+            <label for="role${experienceCount}">Role:</label>
+            <input type="text" id="role${experienceCount}" name="role${experienceCount}" required>
+            <label for="fromDateE${experienceCount}">Start Date:</label>
+            <input type="date" id="fromDateE${experienceCount}" name="fromDateE${experienceCount}" required>
+            <label for="toDateE${experienceCount}">End Date:</label>
+            <input type="date" id="toDateE${experienceCount}" name="toDateE${experienceCount}">
+        `;
+        container.appendChild(experienceDiv);
+    }
+
+    function searchSkills() {
+        const query = document.getElementById('skillInput').value;
+        if (query.length > 0) {
+            fetch(`http://localhost:8080/api/resume/skills/search?query=${query}`)
+                .then(response => response.json())
+                .then(skills => {
+                    const suggestionsContainer = document.getElementById('skillSuggestions');
+                    suggestionsContainer.innerHTML = '';
+                    if (skills.length > 0) {
+                        skills.forEach(skill => {
+                            const skillDiv = document.createElement('div');
+                            skillDiv.textContent = skill.name;
+                            skillDiv.onclick = () => addSkill(skill);
+                            suggestionsContainer.appendChild(skillDiv);
+                        });
+                    } else {
+                        const createDiv = document.createElement('div');
+                        createDiv.textContent = `Create "${query}"`;
+                        createDiv.style.color = 'blue';
+                        createDiv.onclick = () => createSkill(query);
+                        suggestionsContainer.appendChild(createDiv);
+                    }
+                });
+        } else {
+            document.getElementById('skillSuggestions').innerHTML = '';
+        }
+    }
+
+    function addSkill(skill) {
+        addedSkills.push(skill);
+        const addedSkillsContainer = document.getElementById('addedSkills');
+        const skillDiv = document.createElement('div');
+        skillDiv.textContent = skill.name;
+        skillDiv.classList.add('added-skill');
+        addedSkillsContainer.appendChild(skillDiv);
+        document.getElementById('skillSuggestions').innerHTML = '';
+        document.getElementById('skillInput').value = '';
+    }
+
+    function createSkill(skillName) {
+        fetch('http://localhost:8080/api/resume/skills', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: skillName })
+        })
+            .then(response => response.json())
+            .then(skill => addSkill(skill))
+            .catch(error => console.error('Error:', error));
+    }
+
+    document.getElementById('resumeForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const photoFile = formData.get('photo');
+
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            const arrayBuffer = reader.result;
+            const byteArray = new Uint8Array(arrayBuffer);
+
+            const resume = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                dateOfBirth: formData.get('birthDate'),
+                photo: Array.from(byteArray),
+                educations: [],
+                experiences: [],
+                skills: addedSkills
+            };
+
+            for (let i = 1; i <= educationCount; i++) {
+                const institution = formData.get(`institution${i}`);
+                const fromDate = formData.get(`fromDate${i}`);
+                const toDate = formData.get(`toDate${i}`);
+                if (institution && fromDate) {
+                    resume.educations.push({ institution, fromDate: fromDate, toDate: toDate });
+                }
+            }
+
+            for (let i = 1; i <= experienceCount; i++) {
+                const company = formData.get(`company${i}`);
+                const role = formData.get(`role${i}`);
+                const fromDateE = formData.get(`fromDateE${i}`);
+                const toDateE = formData.get(`toDateE${i}`);
+                if (company && role && fromDateE) {
+                    resume.experiences.push({ company, role, fromDate: fromDateE, toDate: toDateE });
+                }
+            }
+
+            console.log('Sending JSON:', JSON.stringify(resume, null, 2));
+
+            fetch('http://localhost:8080/api/resume', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(resume)
+            }).then(response => {
+                if (response.ok) {
+                    response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'resume.pdf';
+                        document.body.appendChild(a); // Required for Firefox
+                        a.click();
+                        a.remove();
+                    });
+                } else {
+                    return response.text().then(text => { throw new Error(text) });
+                }
+            }).catch(error => console.error('Error:', error));
+        };
+
+        reader.readAsArrayBuffer(photoFile);
+    });
+</script>
+</body>
+</html>
