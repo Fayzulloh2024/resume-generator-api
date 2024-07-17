@@ -289,6 +289,16 @@
                         a.click();
                         a.remove();
                     });
+
+                    // Reset the form after successful submission
+                    event.target.reset();
+                    document.getElementById('thumbnail').src = '';  // Clear the photo thumbnail
+                    document.getElementById('educationContainer').innerHTML = '';  // Clear education fields
+                    document.getElementById('experienceContainer').innerHTML = '';  // Clear experience fields
+                    document.getElementById('addedSkills').innerHTML = '';  // Clear added skills
+                    addedSkills = [];  // Reset added skills array
+                    educationCount = 0;  // Reset education count
+                    experienceCount = 0;  // Reset experience count
                 } else {
                     return response.text().then(text => { throw new Error(text) });
                 }
